@@ -1,0 +1,262 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+body, html {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #000;
+  color: #fff;
+}
+
+#canvas-container {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+}
+
+/* HUD Overlay */
+#hud {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  z-index: 10;
+  pointer-events: none;
+}
+
+#stats {
+  background: rgba(0, 0, 0, 0.65);
+  padding: 12px 18px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  font-weight: bold;
+  font-size: 1.1rem;
+  line-height: 1.6;
+}
+
+#stats span {
+  color: #00ff88;
+}
+
+/* Heal Progress Bar */
+#heal-bar-container {
+  margin-top: 15px;
+  width: 200px;
+}
+
+#heal-label {
+  font-size: 0.85rem;
+  font-weight: bold;
+  color: #00e5ff;
+  margin-bottom: 4px;
+}
+
+#heal-bar {
+  width: 100%;
+  height: 10px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+#heal-progress {
+  width: 0%;
+  height: 100%;
+  background: #00e5ff;
+  transition: width 0.05s linear;
+}
+
+/* Mobile Touch Controls */
+#mobile-controls {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 5;
+  pointer-events: none;
+}
+
+#joystick-container {
+  position: absolute;
+  bottom: 40px;
+  left: 40px;
+  width: 110px;
+  height: 110px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.25);
+  pointer-events: auto;
+}
+
+#joystick-knob {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 45px;
+  height: 45px;
+  background: rgba(0, 255, 136, 0.7);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+#touch-look-area {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 50%;
+  height: 100%;
+  pointer-events: auto;
+}
+
+#action-buttons {
+  position: absolute;
+  bottom: 40px;
+  right: 40px;
+  display: grid;
+  grid-template-columns: repeat(2, 60px);
+  gap: 12px;
+  pointer-events: auto;
+}
+
+.action-btn {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  font-size: 1.5rem;
+  backdrop-filter: blur(4px);
+  cursor: pointer;
+}
+
+.action-btn:active {
+  background: rgba(0, 255, 136, 0.5);
+}
+
+/* UI Modal Overlay */
+#intro-screen {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(10, 10, 16, 0.85);
+  z-index: 20;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#lobby-card, #game-over-modal {
+  background: #181824;
+  padding: 30px;
+  border-radius: 12px;
+  border: 1px solid #333;
+  width: 360px;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+#lobby-card h2 {
+  margin-bottom: 20px;
+  letter-spacing: 1px;
+}
+
+.room-section {
+  margin: 15px 0;
+}
+
+.room-section label {
+  font-size: 0.75rem;
+  color: #aaa;
+  font-weight: bold;
+  display: block;
+  margin-bottom: 6px;
+}
+
+.room-id-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+#my-id {
+  font-family: monospace;
+  font-size: 1.2rem;
+  font-weight: bold;
+  letter-spacing: 2px;
+  color: #00ff88;
+}
+
+#copy-btn {
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  border-radius: 6px;
+  border: 1px solid #00ff88;
+  background: transparent;
+  color: #00ff88;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+#copy-btn:hover {
+  background: #00ff88;
+  color: #000;
+}
+
+hr {
+  border: 0;
+  height: 1px;
+  background: #333;
+  margin: 20px 0;
+}
+
+.join-container {
+  display: flex;
+  gap: 8px;
+}
+
+input {
+  flex: 1;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #444;
+  background: #0d0d14;
+  color: white;
+  text-align: center;
+  font-size: 1rem;
+}
+
+button#join-btn, button#start-btn {
+  width: 100%;
+  padding: 12px;
+  margin-top: 10px;
+  border: none;
+  border-radius: 6px;
+  background: #00ff88;
+  color: #000;
+  font-weight: bold;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.join-container button#join-btn {
+  width: auto;
+  margin-top: 0;
+}
+
+.hidden {
+  display: none !important;
+}
