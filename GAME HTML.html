@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0" />
+  <title>Free Fire: Lone Wolf 1v1 - DEEPAN GAMING INDUSTRY</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; touch-action: none; user-select: none; }
+    body { overflow: hidden; font-family: 'Impact', 'Arial Black', sans-serif; background: #050505; color: #fff; }
+    
+    #canvas-container { width: 100vw; height: 100vh; }
+
+    /* Cinematic Intro & Menu Overlay */
+    #intro-screen {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      background: radial-gradient(circle, #1a0800 0%, #000000 100%);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      z-index: 100; text-align: center; border: 4px solid #ff4500;
+    }
+
+    .brand-title {
+      font-size: 36px; text-transform: uppercase; letter-spacing: 3px;
+      color: #ff9900; text-shadow: 0 0 20px #ff4500, 0 0 40px #ff0000;
+      animation: pulseGlow 1.5s infinite alternate;
+    }
+
+    .brand-subtitle {
+      font-size: 16px; color: #00e5ff; letter-spacing: 2px; margin-bottom: 20px;
+      text-shadow: 0 0 10px #00e5ff;
+    }
+
+    @keyframes pulseGlow {
+      0% { transform: scale(0.98); text-shadow: 0 0 15px #ff4500; }
+      100% { transform: scale(1.03); text-shadow: 0 0 35px #ff4500, 0 0 60px #ff0000; }
+    }
+
+    .card {
+      background: rgba(15, 15, 15, 0.9); padding: 20px; border-radius: 12px;
+      border: 2px solid #ff4500; box-shadow: 0 0 30px rgba(255, 69, 0, 0.3);
+      max-width: 450px; width: 90%;
+    }
+
+    input, button {
+      padding: 12px; margin: 8px 0; font-size: 16px; border-radius: 6px; border: none;
+      width: 100%; font-family: sans-serif;
+    }
+
+    button {
+      background: linear-gradient(45deg, #ff4500, #ff8c00); color: white;
+      font-weight: bold; cursor: pointer; text-transform: uppercase;
+      letter-spacing: 1px; transition: 0.2s;
+    }
+
+    button:hover { transform: scale(1.02); filter: brightness(1.2); }
+    .hidden { display: none !important; }
+
+    /* In-Game HUD */
+    #hud {
+      position: absolute; top: 10px; width: 100%; display: flex;
+      justify-content: space-between; padding: 0 15px; pointer-events: none;
+      z-index: 10; font-family: sans-serif; font-weight: bold; font-size: 12px;
+    }
+    .hud-box { background: rgba(0, 0, 0, 0.75); padding: 6px 12px; border-radius: 6px; border: 1px solid #444; }
+    
+    #crosshair {
+      position: absolute; top: 50%; left: 50%; width: 6px; height: 6px;
+      background: #00ff00; border-radius: 50%; transform: translate(-50%, -50%);
+      pointer-events: none; border: 1px solid #000; z-index: 5;
+    }
+
+    /* Healing Progress Bar */
+    #heal-bar-container {
+      position: absolute; bottom: 25%; left: 50%; transform: translateX(-50%);
+      width: 220px; background: rgba(0,0,0,0.85); padding: 8px; border-radius: 8px;
+      border: 1px solid #00ff66; text-align: center; font-family: sans-serif; z-index: 10;
+    }
+
+    /* --- Touch & Mobile Controls HUD --- */
+    #touch-controls {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      pointer-events: none; z-index: 20;
+    }
+
+    /* Virtual Joystick Container (Left Side) */
+    #joystick-container {
+      position: absolute; bottom: 40px; left: 40px; width: 120px; height: 120px;
+      background: rgba(255, 255, 255, 0.1); border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%; pointer-events: auto; touch-action: none;
+    }
+    #joystick-knob {
+      position: absolute; top: 50%; left: 50%; width: 50px; height: 50px;
+      background: rgba(255, 69, 0, 0.8); border: 2px solid #fff; border-radius: 50%;
+      transform: translate(-50%, -50%); pointer-events: none;
+    }
+
+    /* Touch Look Area (Right Side) */
+    #touch-look-area {
+      position: absolute; top: 0; right: 0; width: 50%; height: 100%;
+      pointer-events: auto; touch-action: none;
+    }
+
+    /* Action Buttons (Right Side) */
+    .touch-btn {
+      position: absolute; width: 60px; height: 60px; border-radius: 50%;
+      background: rgba(0, 0, 0, 0.6); border: 2px solid #fff; color: white;
+      font-weight: bold; font-size: 12px; display: flex; align-items: center;
+      justify-content: center; pointer-events: auto; user-select: none;
+      touch-action: none; box-shadow: 0 0 10px rgba(0,0,0,0.5);
+    }
+    .touch-btn:active { transform: scale(0.9); background: rgba(255, 69, 0, 0.8); }
+
+    #btn-fire { bottom: 60px; right: 130px; width: 75px; height: 75px; background: rgba(255, 0, 0, 0.6); border-color: #ff4500; font-size: 16px; }
+    #btn-jump { bottom: 150px; right: 60px; }
+    #btn-gloo { bottom: 150px; right: 140px; background: rgba(0, 229, 255, 0.4); border-color: #00e5ff; }
+    #btn-medkit { bottom: 230px; right: 100px; background: rgba(0, 255, 102, 0.4); border-color: #00ff66; }
+  </style>
+
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+
+  <!-- Menu & Intro Overlay -->
+  <div id="intro-screen">
+    <h1 class="brand-title">DEEPAN GAMING INDUSTRY</h1>
+    <p class="brand-subtitle">LONE WOLF 1V1 (MOBILE & PC)</p>
+
+    <div id="lobby-card" class="card">
+      <p style="margin-bottom: 10px; font-family: sans-serif;">Your Room ID: <strong id="my-id" style="color: #00e5ff;">Generating...</strong></p>
+      <input type="text" id="join-id" placeholder="Enter Host Room ID" />
+      <button id="join-btn">JOIN MATCH</button>
+      <button id="start-btn" style="margin-top: 10px;">START GAME</button>
+    </div>
+
+    <!-- Match Game Over Screen -->
+    <div id="game-over-modal" class="card hidden">
+      <h1 id="match-result-title" style="font-size: 36px; margin-bottom: 10px;">VICTORY!</h1>
+      <p id="match-result-sub" style="font-family: sans-serif; margin-bottom: 20px;">First player to 5 wins!</p>
+      <button onclick="location.reload()">PLAY AGAIN</button>
+    </div>
+  </div>
+
+  <!-- HUD -->
+  <div id="hud">
+    <div class="hud-box" style="color: #ff4500;">HP: <span id="hp">100</span></div>
+    <div class="hud-box" style="color: #00e5ff;">SCORE: <span id="local-score" style="color: #00ff00;">0</span> - <span id="remote-score" style="color: #ff0055;">0</span></div>
+    <div class="hud-box" style="color: #ffcc00;">GLOO: <span id="gloo-count">3</span></div>
+    <div class="hud-box" style="color: #00ff66;">MEDKIT: <span id="medkit-count">2</span></div>
+  </div>
+
+  <!-- Mobile On-Screen Controls -->
+  <div id="touch-controls">
+    <div id="joystick-container">
+      <div id="joystick-knob"></div>
+    </div>
+    <div id="touch-look-area"></div>
+    <div id="btn-fire" class="touch-btn">🔥</div>
+    <div id="btn-jump" class="touch-btn">JUMP</div>
+    <div id="btn-gloo" class="touch-btn">GLOO</div>
+    <div id="btn-medkit" class="touch-btn">MED</div>
+  </div>
+
+  <!-- Healing UI -->
+  <div id="heal-bar-container" class="hidden">
+    <p style="color: #00ff66; font-size: 12px; margin-bottom: 5px;">HEALING... (DON'T MOVE)</p>
+    <div style="width: 100%; height: 8px; background: #222; border-radius: 4px; overflow: hidden;">
+      <div id="heal-progress" style="width: 0%; height: 100%; background: #00ff66; transition: width 0.05s linear;"></div>
+    </div>
+  </div>
+
+  <div id="crosshair"></div>
+  <div id="canvas-container"></div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
