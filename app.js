@@ -3,6 +3,7 @@ import { PointerLockControls } from 'three/addons/controls/PointerLockControls.j
 
 // --- UI Elements ---
 const myIdEl = document.getElementById('my-id');
+const copyBtn = document.getElementById('copy-btn');
 const joinInput = document.getElementById('join-id');
 const joinBtn = document.getElementById('join-btn');
 const startBtn = document.getElementById('start-btn');
@@ -94,7 +95,6 @@ startBtn.addEventListener('click', () => {
 });
 
 const moveState = { forward: false, backward: false, left: false, right: false };
-const velocity = new THREE.Vector3();
 let prevTime = performance.now();
 
 // Keyboard Listeners (PC)
@@ -183,7 +183,6 @@ function updateJoystick(touch) {
 
   joystickVector = { x: knobX / maxRadius, y: knobY / maxRadius };
 
-  // Update Move Flags
   moveState.forward = joystickVector.y < -0.2;
   moveState.backward = joystickVector.y > 0.2;
   moveState.left = joystickVector.x < -0.2;
@@ -229,7 +228,7 @@ const resetLook = () => { lookTouchId = null; };
 touchLookArea.addEventListener('touchend', resetLook);
 touchLookArea.addEventListener('touchcancel', resetLook);
 
-// Action Button Event Listeners
+// Touch Buttons
 document.getElementById('btn-fire').addEventListener('touchstart', (e) => { e.preventDefault(); shoot(); });
 document.getElementById('btn-jump').addEventListener('touchstart', (e) => { e.preventDefault(); jump(); });
 document.getElementById('btn-gloo').addEventListener('touchstart', (e) => { e.preventDefault(); deployGlooWall(); });
@@ -374,7 +373,7 @@ function endMatch(result) {
   if (result === 'VICTORY') {
     matchTitle.innerText = "VICTORY! BOOYAH!";
     matchTitle.style.color = "#00ff00";
-    matchSub.innerText = "DEEPAN GAMING INDUSTRY CHAMPION";
+    matchSub.innerText = "CHAMPION";
   } else {
     matchTitle.innerText = "DEFEAT!";
     matchTitle.style.color = "#ff0055";
@@ -382,7 +381,7 @@ function endMatch(result) {
   }
 }
 
-// --- 6. PeerJS Networking ---
+// --- 6. Remote Player, PeerJS (10-Digit ID) & Copy Button ---
 const remotePlayer = new THREE.Mesh(
   new THREE.CapsuleGeometry(0.8, 1.8, 4, 8),
   new THREE.MeshStandardMaterial({ color: 0xff0000 })
@@ -391,11 +390,53 @@ remotePlayer.visible = false;
 scene.add(remotePlayer);
 
 let peer = null, conn = null, peerReady = false, isHost = false;
-peer = new Peer();
+
+function generate10DigitID() {
+  return Math.floor(1000000000 + Math.random() * 9000000000).toString();
+}
+
+const customRoomID = generate10DigitID();
+peer = new Peer(customRoomID);
 
 peer.on('open', (id) => {
   myIdEl.innerText = id;
   peerReady = true;
+});
+
+peer.on('error', (err) => {
+  if (err.type === 'unavailable-id') {
+    const newID = generate10DigitID();
+    peer = new Peer(newID);
+  }
+});
+
+// Copy Room ID Button Listener
+copyBtn.addEventListener('click', async () => {
+  const roomId = myIdEl.innerText;
+  if (!roomId || roomId === 'Generating...') return;
+
+  try {
+    await navigator.clipboard.writeText(roomId);
+    copyBtn.innerText = 'Copied! ✓';
+    copyBtn.style.background = '#00ff88';
+    copyBtn.style.color = '#000';
+
+    setTimeout(() => {
+      copyBtn.innerText = 'Copy ID';
+      copyBtn.style.background = '';
+      copyBtn.style.color = '';
+    }, 2000);
+  } catch (err) {
+    const tempInput = document.createElement('input');
+    tempInput.value = roomId;
+    document.body.appendChild(tempInput);
+    tempInput.select();
+    document.execCommand('copy');
+    document.body.removeChild(tempInput);
+
+    copyBtn.innerText = 'Copied! ✓';
+    setTimeout(() => { copyBtn.innerText = 'Copy ID'; }, 2000);
+  }
 });
 
 peer.on('connection', (c) => { 
@@ -406,10 +447,12 @@ peer.on('connection', (c) => {
 
 joinBtn.addEventListener('click', () => {
   const tid = joinInput.value.trim();
-  if (tid) { 
+  if (tid.length === 10) { 
     conn = peer.connect(tid); 
     isHost = false;
     setupNetwork(); 
+  } else {
+    alert("Please enter a valid 10-digit Room ID!");
   }
 });
 
@@ -441,14 +484,14 @@ function setupNetwork() {
   });
 }
 
-// Sync player transform (30 FPS)
+// Sync player position at 30 FPS
 setInterval(() => {
   if (conn && conn.open && gameStarted) {
     conn.send({ type: 'state', x: camera.position.x, y: camera.position.y, z: camera.position.z, ry: camera.rotation.y });
   }
 }, 33);
 
-// --- 7. Main Game & Physics Loop ---
+// --- 7. Main Game Loop ---
 function animate() {
   requestAnimationFrame(animate);
   const time = performance.now();
@@ -456,7 +499,6 @@ function animate() {
   prevTime = time;
 
   if (gameStarted && isRoundActive) {
-    // Gravity and Jumping
     velocityY -= GRAVITY * delta;
     camera.position.y += velocityY * delta;
 
@@ -466,19 +508,17 @@ function animate() {
       isGrounded = true;
     }
 
-    // Combine PC + Touch Joystick Movement
     const moveZ = (moveState.forward ? 1 : 0) - (moveState.backward ? 1 : 0);
     const moveX = (moveState.right ? 1 : 0) - (moveState.left ? 1 : 0);
 
     if (moveZ !== 0 || moveX !== 0) {
       const moveVector = new THREE.Vector3(moveX, 0, -moveZ).normalize();
       moveVector.applyQuaternion(camera.quaternion);
-      moveVector.y = 0; // Lock movement to ground plane
+      moveVector.y = 0;
       camera.position.addScaledVector(moveVector, 12 * delta);
     }
   }
 
-  // Update Bullets & Hit Detection
   for (let i = bullets.length - 1; i >= 0; i--) {
     const b = bullets[i];
     b.mesh.position.x += b.vx * delta;
