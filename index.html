@@ -122,6 +122,27 @@
     .join-row button { width: auto; padding: 12px 18px; margin: 0; }
     .join-row input { margin: 0; }
 
+    /* Mode select / host / join panels */
+    #host-panel, #join-panel { text-align: center; }
+    button.btn-cyan {
+      background: linear-gradient(45deg, #00b8d4, #00e5ff); color: #052733;
+      box-shadow: 0 4px 14px rgba(0,200,255,0.3);
+    }
+    #join-code {
+      font-family: 'Consolas', monospace; font-size: 1.4rem; letter-spacing: 8px;
+    }
+    #host-code {
+      font-family: 'Consolas', monospace; font-size: 1.6rem; font-weight: bold;
+      letter-spacing: 6px; color: #00ff88;
+    }
+    .status-text { font-size: 12px; color: #999; letter-spacing: 0.5px; margin: 10px 0; min-height: 14px; }
+    .back-link {
+      background: transparent; box-shadow: none; color: #999; font-size: 11px;
+      text-transform: none; letter-spacing: 0.5px; font-weight: normal; padding: 6px;
+      margin-top: 4px;
+    }
+    .back-link:hover { color: #ff9900; transform: none; filter: none; }
+
     /* Match Game Over Screen */
     #game-over-modal h1 { font-size: 38px; margin-bottom: 8px; letter-spacing: 2px; }
     #game-over-modal p { font-family: inherit; margin-bottom: 20px; color: #ccc; font-size: 13px; letter-spacing: 1px; }
@@ -263,17 +284,36 @@
     </div>
 
     <div id="lobby-card" class="card">
-      <div class="card-heading">YOUR ROOM ID</div>
-      <div id="my-id-row">
-        <span id="my-id">Generating...</span>
-        <button id="copy-btn" type="button">Copy</button>
+
+      <!-- Step 1: choose Host or Join -->
+      <div id="mode-select">
+        <div class="card-heading">CHOOSE MODE</div>
+        <button id="host-mode-btn">Host Game</button>
+        <button id="join-mode-btn" class="btn-cyan">Join Game</button>
       </div>
-      <div class="join-row">
-        <input type="text" id="join-id" placeholder="Enter host room ID" />
-        <button id="join-btn">Join</button>
+
+      <!-- Host flow: generates a 6-digit code for the opponent -->
+      <div id="host-panel" class="hidden">
+        <div class="card-heading">YOUR ROOM CODE</div>
+        <div id="my-id-row">
+          <span id="host-code">------</span>
+          <button id="copy-btn" type="button">Copy</button>
+        </div>
+        <p class="status-text" id="host-status">Generating code&hellip;</p>
+        <button id="host-start-btn" class="hidden">Start Game</button>
+        <button id="host-back-btn" class="back-link" type="button">&larr; Back</button>
       </div>
-      <hr class="divider" />
-      <button id="start-btn">Start Game</button>
+
+      <!-- Join flow: enter the host's 6-digit code -->
+      <div id="join-panel" class="hidden">
+        <div class="card-heading">ENTER ROOM CODE</div>
+        <input type="text" id="join-code" placeholder="000000" maxlength="6" inputmode="numeric" pattern="[0-9]*" />
+        <button id="join-connect-btn">Connect</button>
+        <p class="status-text" id="join-status">&nbsp;</p>
+        <button id="join-start-btn" class="hidden">Start Game</button>
+        <button id="join-back-btn" class="back-link" type="button">&larr; Back</button>
+      </div>
+
     </div>
 
     <!-- Match Game Over Screen -->
@@ -354,7 +394,7 @@
     })();
 
     document.getElementById('copy-btn').addEventListener('click', () => {
-      const id = document.getElementById('my-id').innerText;
+      const id = document.getElementById('host-code').innerText;
       if (navigator.clipboard) navigator.clipboard.writeText(id).catch(() => {});
       const btn = document.getElementById('copy-btn');
       const old = btn.innerText;
