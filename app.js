@@ -4,10 +4,20 @@ import { PointerLockControls } from 'three/addons/controls/PointerLockControls.j
 // ============================================================
 // UI Elements
 // ============================================================
-const myIdEl = document.getElementById('my-id');
-const joinInput = document.getElementById('join-id');
-const joinBtn = document.getElementById('join-btn');
-const startBtn = document.getElementById('start-btn');
+const modeSelectEl = document.getElementById('mode-select');
+const hostModeBtn = document.getElementById('host-mode-btn');
+const joinModeBtn = document.getElementById('join-mode-btn');
+const hostPanel = document.getElementById('host-panel');
+const joinPanel = document.getElementById('join-panel');
+const hostCodeEl = document.getElementById('host-code');
+const hostStatusEl = document.getElementById('host-status');
+const hostStartBtn = document.getElementById('host-start-btn');
+const hostBackBtn = document.getElementById('host-back-btn');
+const joinCodeInput = document.getElementById('join-code');
+const joinConnectBtn = document.getElementById('join-connect-btn');
+const joinStatusEl = document.getElementById('join-status');
+const joinStartBtn = document.getElementById('join-start-btn');
+const joinBackBtn = document.getElementById('join-back-btn');
 const introScreen = document.getElementById('intro-screen');
 const lobbyCard = document.getElementById('lobby-card');
 const gameOverModal = document.getElementById('game-over-modal');
@@ -419,14 +429,16 @@ const HEAL_DURATION = 3000;
 
 const controls = new PointerLockControls(camera, renderer.domElement);
 
-startBtn.addEventListener('click', () => {
+function startGame() {
   ensureAudio();
   gameStarted = true;
   isRoundActive = true;
   introScreen.classList.add('hidden');
   sensitivityWrap.style.display = 'flex';
   if (!isMobileDevice()) controls.lock();
-});
+}
+hostStartBtn.addEventListener('click', startGame);
+joinStartBtn.addEventListener('click', startGame);
 
 const moveState = { forward: false, backward: false, left: false, right: false };
 let sprinting = false;
@@ -851,31 +863,92 @@ remotePlayer.visible = false;
 scene.add(remotePlayer);
 
 let peer = null, conn = null, isHost = false;
-peer = new Peer();
 
-peer.on('open', (id) => {
-  myIdEl.innerText = id;
+// ---- Step 1: mode select ----
+hostModeBtn.addEventListener('click', () => {
+  modeSelectEl.classList.add('hidden');
+  hostPanel.classList.remove('hidden');
+  startHosting();
 });
 
-peer.on('connection', (c) => {
-  conn = c;
-  isHost = true;
-  setupNetwork();
+joinModeBtn.addEventListener('click', () => {
+  modeSelectEl.classList.add('hidden');
+  joinPanel.classList.remove('hidden');
 });
 
-joinBtn.addEventListener('click', () => {
-  const tid = joinInput.value.trim();
-  if (tid) {
-    conn = peer.connect(tid);
+hostBackBtn.addEventListener('click', () => location.reload());
+joinBackBtn.addEventListener('click', () => location.reload());
+
+joinCodeInput.addEventListener('input', () => {
+  joinCodeInput.value = joinCodeInput.value.replace(/\D/g, '').slice(0, 6);
+});
+
+// ---- Host: spin up a peer identified by a short 6-digit room code ----
+function generateRoomCode() {
+  return String(Math.floor(100000 + Math.random() * 900000));
+}
+
+function startHosting() {
+  const code = generateRoomCode();
+  hostCodeEl.innerText = code;
+  hostStatusEl.innerText = 'Generating code\u2026';
+
+  peer = new Peer(code);
+
+  peer.on('open', (id) => {
+    hostCodeEl.innerText = id;
+    hostStatusEl.innerText = 'Waiting for opponent to join\u2026';
+  });
+
+  peer.on('connection', (c) => {
+    conn = c;
+    isHost = true;
+    setupNetwork();
+  });
+
+  peer.on('error', (err) => {
+    if (err.type === 'unavailable-id') {
+      startHosting(); // code collision (rare) - try a fresh one
+    } else {
+      hostStatusEl.innerText = 'Connection error - please refresh and try again.';
+    }
+  });
+}
+
+// ---- Join: connect to the host's 6-digit room code ----
+joinConnectBtn.addEventListener('click', () => {
+  const code = joinCodeInput.value.trim();
+  if (code.length !== 6) {
+    joinStatusEl.innerText = 'Enter the 6-digit code from your opponent.';
+    return;
+  }
+
+  joinStatusEl.innerText = 'Connecting\u2026';
+  joinConnectBtn.disabled = true;
+
+  peer = new Peer();
+  peer.on('open', () => {
+    conn = peer.connect(code);
     isHost = false;
     setupNetwork();
-  }
+  });
+  peer.on('error', (err) => {
+    joinConnectBtn.disabled = false;
+    joinStatusEl.innerText = 'Could not connect - check the code and try again.';
+  });
 });
 
 function setupNetwork() {
   conn.on('open', () => {
     remotePlayer.visible = true;
     resetRound();
+    if (isHost) {
+      hostStatusEl.innerText = 'Opponent connected!';
+      hostStartBtn.classList.remove('hidden');
+    } else {
+      joinStatusEl.innerText = 'Connected!';
+      joinStartBtn.classList.remove('hidden');
+    }
   });
 
   conn.on('data', (data) => {
