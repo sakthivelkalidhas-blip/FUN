@@ -1,5 +1,9 @@
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 // ============================================================
 // UI Elements
@@ -167,14 +171,14 @@ function buildTexture(size, drawFn, repeatX = 1, repeatY = 1) {
   tex.wrapS = THREE.RepeatWrapping;
   tex.wrapT = THREE.RepeatWrapping;
   tex.repeat.set(repeatX, repeatY);
-  tex.anisotropy = 4;
+  tex.anisotropy = 8;
   return tex;
 }
 
-const floorTexture = buildTexture(256, (ctx, s) => {
+const floorTexture = buildTexture(512, (ctx, s) => {
   ctx.fillStyle = '#2b2d30';
   ctx.fillRect(0, 0, s, s);
-  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  ctx.strokeStyle = 'rgba(255,255,255,0.07)';
   ctx.lineWidth = 2;
   const tiles = 4;
   for (let i = 0; i <= tiles; i++) {
@@ -182,12 +186,18 @@ const floorTexture = buildTexture(256, (ctx, s) => {
     ctx.beginPath(); ctx.moveTo(p, 0); ctx.lineTo(p, s); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(0, p); ctx.lineTo(s, p); ctx.stroke();
   }
-  // subtle grime speckles
-  for (let i = 0; i < 140; i++) {
+  // fine scuffs + grime for extra surface detail at close range
+  for (let i = 0; i < 260; i++) {
     ctx.fillStyle = `rgba(0,0,0,${Math.random() * 0.12})`;
     ctx.fillRect(Math.random() * s, Math.random() * s, 2, 2);
   }
-}, 14, 14);
+  for (let i = 0; i < 40; i++) {
+    ctx.strokeStyle = `rgba(255,255,255,${Math.random() * 0.05})`;
+    ctx.lineWidth = 1;
+    const x1 = Math.random() * s, y1 = Math.random() * s;
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x1 + Math.random() * 40 - 20, y1 + Math.random() * 40 - 20); ctx.stroke();
+  }
+}, 22, 22);
 
 const centerMatTexture = buildTexture(512, (ctx, s) => {
   ctx.fillStyle = '#33363a';
@@ -202,10 +212,10 @@ const centerMatTexture = buildTexture(512, (ctx, s) => {
 }, 1, 1);
 
 function woodCrateTexture(base1, base2) {
-  return buildTexture(256, (ctx, s) => {
+  return buildTexture(512, (ctx, s) => {
     ctx.fillStyle = base1;
     ctx.fillRect(0, 0, s, s);
-    const planks = 4;
+    const planks = 5;
     for (let i = 0; i < planks; i++) {
       const y = (i / planks) * s;
       ctx.fillStyle = i % 2 === 0 ? base1 : base2;
@@ -213,17 +223,21 @@ function woodCrateTexture(base1, base2) {
       ctx.strokeStyle = 'rgba(0,0,0,0.35)';
       ctx.lineWidth = 3;
       ctx.strokeRect(0, y, s, s / planks);
-      for (let g = 0; g < 6; g++) {
+      for (let g = 0; g < 10; g++) {
         ctx.strokeStyle = `rgba(0,0,0,${0.05 + Math.random() * 0.08})`;
         ctx.lineWidth = 1;
         const gy = y + Math.random() * (s / planks);
         ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(s, gy + (Math.random() * 6 - 3)); ctx.stroke();
       }
+      // wood grain highlight
+      ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+      ctx.beginPath(); ctx.moveTo(0, y + 4); ctx.lineTo(s, y + 4); ctx.stroke();
     }
     // corner metal braces
     ctx.fillStyle = 'rgba(20,20,20,0.55)';
-    const b = 14;
+    const b = 16;
     ctx.fillRect(0, 0, b, s); ctx.fillRect(s - b, 0, b, s);
+    ctx.fillRect(0, 0, s, b); ctx.fillRect(0, s - b, s, b);
   }, 1, 1);
 }
 
@@ -231,31 +245,35 @@ const crateTexWood = woodCrateTexture('#8a5a30', '#78491f');
 const crateTexOlive = woodCrateTexture('#4f5b32', '#414b28');
 const crateTexTan = woodCrateTexture('#a58657', '#93764a');
 
-const wallTexture = buildTexture(256, (ctx, s) => {
+const wallTexture = buildTexture(512, (ctx, s) => {
   ctx.fillStyle = '#2e3336';
   ctx.fillRect(0, 0, s, s);
-  const ribs = 16;
+  const ribs = 18;
   for (let i = 0; i < ribs; i++) {
     const x = (i / ribs) * s;
-    ctx.fillStyle = i % 2 === 0 ? 'rgba(255,255,255,0.035)' : 'rgba(0,0,0,0.12)';
+    ctx.fillStyle = i % 2 === 0 ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.13)';
     ctx.fillRect(x, 0, s / ribs, s);
   }
   ctx.fillStyle = 'rgba(0,0,0,0.15)';
-  for (let i = 0; i < 40; i++) ctx.fillRect(Math.random() * s, Math.random() * s, 3, 3);
-}, 8, 2);
+  for (let i = 0; i < 70; i++) ctx.fillRect(Math.random() * s, Math.random() * s, 3, 3);
+  // horizontal panel seams
+  ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+  ctx.lineWidth = 3;
+  for (let i = 1; i < 4; i++) { const y = (i / 4) * s; ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(s, y); ctx.stroke(); }
+}, 16, 3);
 
 // ============================================================
 // Scene & Renderer
 // ============================================================
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x0d0f12);
-scene.fog = new THREE.Fog(0x0d0f12, 22, 62);
+scene.fog = new THREE.Fog(0x0d0f12, 34, 110);
 
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 const BASE_FOV = 75;
-camera.position.set(0, 1.6, 20);
+camera.position.set(0, 1.6, 34);
 
-const renderer = new THREE.WebGLRenderer({ antialias: true });
+const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
@@ -269,56 +287,73 @@ window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
+  composer.setSize(window.innerWidth, window.innerHeight);
 });
 
-// ---- Lighting ----
-scene.add(new THREE.HemisphereLight(0x9fb7c9, 0x2b2416, 0.55));
+// ---- Post-processing: subtle bloom so lamps, tracers and the muzzle
+// flash glow instead of looking flat ----
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+const bloomPass = new UnrealBloomPass(
+  new THREE.Vector2(window.innerWidth, window.innerHeight),
+  0.55, // strength
+  0.4,  // radius
+  0.82  // threshold - only bright emissive/lamp areas bloom
+);
+composer.addPass(bloomPass);
+composer.addPass(new OutputPass());
 
-const sunLight = new THREE.DirectionalLight(0xffe3b8, 0.9);
-sunLight.position.set(-14, 22, -10);
+// ---- Lighting ----
+scene.add(new THREE.HemisphereLight(0x9fb7c9, 0x2b2416, 0.6));
+
+const sunLight = new THREE.DirectionalLight(0xffe3b8, 1.0);
+sunLight.position.set(-24, 34, -18);
 sunLight.castShadow = true;
-sunLight.shadow.mapSize.set(2048, 2048);
-sunLight.shadow.camera.left = -30;
-sunLight.shadow.camera.right = 30;
-sunLight.shadow.camera.top = 30;
-sunLight.shadow.camera.bottom = -30;
-sunLight.shadow.camera.far = 70;
-sunLight.shadow.bias = -0.0015;
+sunLight.shadow.mapSize.set(4096, 4096);
+sunLight.shadow.camera.left = -52;
+sunLight.shadow.camera.right = 52;
+sunLight.shadow.camera.top = 52;
+sunLight.shadow.camera.bottom = -52;
+sunLight.shadow.camera.far = 110;
+sunLight.shadow.bias = -0.0012;
 scene.add(sunLight);
 
-// Warm hanging warehouse lamps
-const lampPositions = [[-10, 8.6, -10], [10, 8.6, -10], [-10, 8.6, 10], [10, 8.6, 10], [0, 8.8, 0]];
+// Warm hanging warehouse lamps, spread across the larger floor on a grid
+const LAMP_GRID = [-32, 0, 32];
+const lampPositions = [];
+LAMP_GRID.forEach((x) => LAMP_GRID.forEach((z) => lampPositions.push([x, 8.8, z])));
 lampPositions.forEach(([x, y, z]) => {
-  const lamp = new THREE.PointLight(0xffb066, 6, 22, 2);
+  const lamp = new THREE.PointLight(0xffb066, 7, 34, 2);
   lamp.position.set(x, y, z);
   lamp.castShadow = false;
   scene.add(lamp);
 
   const fixture = new THREE.Mesh(
     new THREE.CylinderGeometry(0.35, 0.5, 0.4, 12),
-    new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.6, roughness: 0.4, emissive: 0xffaa55, emissiveIntensity: 0.6 })
+    new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.6, roughness: 0.4, emissive: 0xffaa55, emissiveIntensity: 0.8 })
   );
   fixture.position.set(x, y + 0.35, z);
   scene.add(fixture);
 });
 
-// Skylight glow panel on the back wall (light source hinted in reference art)
-const skylight = new THREE.Mesh(
-  new THREE.PlaneGeometry(14, 5),
-  new THREE.MeshBasicMaterial({ color: 0xdfefff })
-);
-skylight.position.set(0, 7, -26.9);
-scene.add(skylight);
-const skylightFill = new THREE.PointLight(0xcfe8ff, 3, 40, 2);
-skylightFill.position.set(0, 7, -24);
-scene.add(skylightFill);
-
 // ============================================================
 // Arena (original layout inspired by warehouse duel arenas: tiled
-// floor with a center marker, crate cover, industrial shell)
+// floor with a center marker, crate cover, industrial shell).
+// Enlarged so there's real space to flank and rotate around cover.
 // ============================================================
-const ROOM_HALF = 27;
+const ROOM_HALF = 46;
 const obstacles = []; // {x, z, hw, hd, top} for simple AABB collision
+
+// Skylight glow panel on the back wall (light source hinted in reference art)
+const skylight = new THREE.Mesh(
+  new THREE.PlaneGeometry(20, 6),
+  new THREE.MeshBasicMaterial({ color: 0xdfefff })
+);
+skylight.position.set(0, 8, -(ROOM_HALF - 0.1));
+scene.add(skylight);
+const skylightFill = new THREE.PointLight(0xcfe8ff, 4, 60, 2);
+skylightFill.position.set(0, 8, -(ROOM_HALF - 4));
+scene.add(skylightFill);
 
 const floor = new THREE.Mesh(
   new THREE.PlaneGeometry(ROOM_HALF * 2, ROOM_HALF * 2),
@@ -329,7 +364,7 @@ floor.receiveShadow = true;
 scene.add(floor);
 
 const centerMat = new THREE.Mesh(
-  new THREE.PlaneGeometry(15, 15),
+  new THREE.PlaneGeometry(20, 20),
   new THREE.MeshStandardMaterial({ map: centerMatTexture, roughness: 0.9 })
 );
 centerMat.rotation.x = -Math.PI / 2;
@@ -346,7 +381,7 @@ function addWall(w, h, d, x, y, z) {
   wall.castShadow = true;
   scene.add(wall);
 }
-const WALL_H = 11;
+const WALL_H = 13;
 addWall(ROOM_HALF * 2 + 2, WALL_H, 1, 0, WALL_H / 2, -ROOM_HALF);
 addWall(ROOM_HALF * 2 + 2, WALL_H, 1, 0, WALL_H / 2, ROOM_HALF);
 addWall(1, WALL_H, ROOM_HALF * 2 + 2, -ROOM_HALF, WALL_H / 2, 0);
@@ -354,9 +389,14 @@ addWall(1, WALL_H, ROOM_HALF * 2 + 2, ROOM_HALF, WALL_H / 2, 0);
 
 // Roof trusses (simple industrial beams, purely decorative)
 const beamMat = new THREE.MeshStandardMaterial({ color: 0x1b1b1b, metalness: 0.7, roughness: 0.5 });
-for (let i = -2; i <= 2; i++) {
+for (let i = -4; i <= 4; i++) {
   const beam = new THREE.Mesh(new THREE.BoxGeometry(ROOM_HALF * 2, 0.5, 0.5), beamMat);
-  beam.position.set(0, 10, i * 10);
+  beam.position.set(0, 12, i * 11.5);
+  scene.add(beam);
+}
+for (let i = -4; i <= 4; i++) {
+  const beam = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, ROOM_HALF * 2), beamMat);
+  beam.position.set(i * 11.5, 12, 0);
   scene.add(beam);
 }
 
@@ -380,24 +420,39 @@ function addCrateStack(x, z, texture, ry = 0) {
   top.position.y = 2.2 + 0.8;
 }
 
-// Cover clusters mirrored left/right, echoing the reference photo's layout
-addCrateStack(-14, -8, crateTexOlive, 0.3);
-addCrate(2.4, -16, -3, crateTexTan, 0.6);
-addCrate(1.8, -11, -2, crateTexWood, -0.2);
-addCrateStack(-14, 8, crateTexWood, -0.4);
-addCrate(2.0, -9, 12, crateTexOlive, 0.5);
+// Cover clusters mirrored left/right, echoing the reference photo's layout,
+// scaled outward to fill the larger arena footprint.
+const SCALE = ROOM_HALF / 27;
+const sx = (v) => v * SCALE;
 
-addCrateStack(14, -8, crateTexOlive, -0.3);
-addCrate(2.4, 16, -3, crateTexTan, -0.6);
-addCrate(1.8, 11, -2, crateTexWood, 0.2);
-addCrateStack(14, 8, crateTexWood, 0.4);
-addCrate(2.0, 9, 12, crateTexOlive, -0.5);
+addCrateStack(sx(-14), sx(-8), crateTexOlive, 0.3);
+addCrate(2.4, sx(-16), sx(-3), crateTexTan, 0.6);
+addCrate(1.8, sx(-11), sx(-2), crateTexWood, -0.2);
+addCrateStack(sx(-14), sx(8), crateTexWood, -0.4);
+addCrate(2.0, sx(-9), sx(12), crateTexOlive, 0.5);
+
+addCrateStack(sx(14), sx(-8), crateTexOlive, -0.3);
+addCrate(2.4, sx(16), sx(-3), crateTexTan, -0.6);
+addCrate(1.8, sx(11), sx(-2), crateTexWood, 0.2);
+addCrateStack(sx(14), sx(8), crateTexWood, 0.4);
+addCrate(2.0, sx(9), sx(12), crateTexOlive, -0.5);
 
 // Center-lane low cover (symmetric, keeps duels fair)
-addCrate(1.6, -3.5, 0, crateTexTan, 0.3);
-addCrate(1.6, 3.5, 0, crateTexTan, -0.3);
-addCrate(2.0, 0, -10, crateTexWood, 0);
-addCrate(2.0, 0, 10, crateTexWood, 0);
+addCrate(1.6, sx(-3.5), 0, crateTexTan, 0.3);
+addCrate(1.6, sx(3.5), 0, crateTexTan, -0.3);
+addCrate(2.0, 0, sx(-10), crateTexWood, 0);
+addCrate(2.0, 0, sx(10), crateTexWood, 0);
+
+// Outer-ring cover: the bigger footprint leaves room to flank wide,
+// so give both flanks and the back lanes extra crate cover too.
+addCrateStack(sx(-14) - 14, 0, crateTexTan, 0.15);
+addCrateStack(sx(14) + 14, 0, crateTexOlive, -0.15);
+addCrate(2.6, 0, sx(12) + 14, crateTexWood, 0.1);
+addCrate(2.6, 0, -(sx(12) + 14), crateTexWood, -0.1);
+addCrateStack(sx(-16), sx(16), crateTexOlive, 0.5);
+addCrateStack(sx(16), sx(16), crateTexTan, -0.5);
+addCrateStack(sx(-16), -sx(16), crateTexWood, 0.6);
+addCrateStack(sx(16), -sx(16), crateTexOlive, -0.6);
 
 // ============================================================
 // Game & Player State
@@ -826,7 +881,7 @@ function resetRound() {
   glooEl.innerText = glooWallsLeft;
   medkitEl.innerText = medKitsLeft;
 
-  const spawnZ = isHost ? 20 : -20;
+  const spawnZ = isHost ? ROOM_HALF - 8 : -(ROOM_HALF - 8);
   camera.position.set(0, STAND_HEIGHT, spawnZ);
   camera.lookAt(0, STAND_HEIGHT, 0);
 
@@ -852,15 +907,57 @@ function endMatch(result) {
 }
 
 // ============================================================
+// Opponent character models — two original, distinctly-styled
+// low-poly operators (not based on any existing game's characters)
+// ============================================================
+function buildCharacter(accentColor, bodyColor) {
+  const group = new THREE.Group();
+  const bodyMat = new THREE.MeshStandardMaterial({ color: bodyColor, roughness: 0.6, metalness: 0.25 });
+  const accentMat = new THREE.MeshStandardMaterial({ color: accentColor, emissive: accentColor, emissiveIntensity: 0.35, roughness: 0.5 });
+  const darkMat = new THREE.MeshStandardMaterial({ color: 0x18181a, roughness: 0.75 });
+  const skinMat = new THREE.MeshStandardMaterial({ color: 0xd8ad82, roughness: 0.85 });
+
+  const legGeo = new THREE.CapsuleGeometry(0.17, 0.68, 4, 8);
+  const legL = new THREE.Mesh(legGeo, darkMat); legL.position.set(-0.21, 0.52, 0); group.add(legL);
+  const legR = new THREE.Mesh(legGeo, darkMat); legR.position.set(0.21, 0.52, 0); group.add(legR);
+
+  const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.4, 0.58, 4, 8), bodyMat);
+  torso.position.set(0, 1.28, 0); group.add(torso);
+
+  const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.1, 0.44), accentMat);
+  stripe.position.set(0, 1.38, 0); group.add(stripe);
+
+  const pack = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.46, 0.2), darkMat);
+  pack.position.set(0, 1.3, -0.3); group.add(pack);
+
+  const armGeo = new THREE.CapsuleGeometry(0.12, 0.52, 4, 8);
+  const armL = new THREE.Mesh(armGeo, bodyMat); armL.position.set(-0.48, 1.25, 0); armL.rotation.z = 0.22; group.add(armL);
+  const armR = new THREE.Mesh(armGeo, bodyMat); armR.position.set(0.48, 1.25, 0); armR.rotation.z = -0.22; group.add(armR);
+
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.25, 12, 12), skinMat);
+  head.position.set(0, 1.87, 0); group.add(head);
+
+  const visor = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.09, 0.09), accentMat);
+  visor.position.set(0, 1.9, 0.21); group.add(visor);
+
+  const fin = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.2, 6), accentMat);
+  fin.position.set(0, 2.13, -0.04); group.add(fin);
+
+  group.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+  return group;
+}
+
+// "Vanguard" - orange/black tactical rig, "Specter" - cyan/slate stealth rig
+const vanguardModel = buildCharacter(0xff6a00, 0x2b2b2f);
+const specterModel = buildCharacter(0x00e5ff, 0x232830);
+vanguardModel.visible = false;
+specterModel.visible = false;
+scene.add(vanguardModel, specterModel);
+
+// ============================================================
 // PeerJS Networking
 // ============================================================
-const remotePlayer = new THREE.Mesh(
-  new THREE.CapsuleGeometry(0.8, 1.8, 4, 8),
-  new THREE.MeshStandardMaterial({ color: 0xff3b1a, roughness: 0.6 })
-);
-remotePlayer.castShadow = true;
-remotePlayer.visible = false;
-scene.add(remotePlayer);
+let remotePlayer = vanguardModel; // reassigned to the correct model once a role is known
 
 let peer = null, conn = null, isHost = false;
 
@@ -940,6 +1037,8 @@ joinConnectBtn.addEventListener('click', () => {
 
 function setupNetwork() {
   conn.on('open', () => {
+    // Host sees the "Specter" model as their opponent; the guest sees "Vanguard".
+    remotePlayer = isHost ? specterModel : vanguardModel;
     remotePlayer.visible = true;
     resetRound();
     if (isHost) {
@@ -953,7 +1052,7 @@ function setupNetwork() {
 
   conn.on('data', (data) => {
     if (data.type === 'state') {
-      remotePlayer.position.set(data.x, data.y - 0.9, data.z);
+      remotePlayer.position.set(data.x, Math.max(0, data.y - STAND_HEIGHT), data.z);
       remotePlayer.rotation.y = data.ry;
     } else if (data.type === 'shoot') {
       spawnBullet(data.bullet);
@@ -1082,18 +1181,23 @@ function animate() {
     b.mesh.position.y += b.vy * delta;
     b.mesh.position.z += b.vz * delta;
 
-    if (remotePlayer.visible && b.mesh.position.distanceTo(remotePlayer.position) < 1.4) {
-      scene.remove(b.mesh);
-      bullets.splice(i, 1);
-      if (conn && conn.open) conn.send({ type: 'hit', damage: 25 });
-      continue;
+    // Hit-test against the character model's torso height, not its
+    // ground-level origin (the model now stands with feet at y=0).
+    if (remotePlayer.visible) {
+      const targetCenter = new THREE.Vector3(remotePlayer.position.x, remotePlayer.position.y + 1.25, remotePlayer.position.z);
+      if (b.mesh.position.distanceTo(targetCenter) < 1.3) {
+        scene.remove(b.mesh);
+        bullets.splice(i, 1);
+        if (conn && conn.open) conn.send({ type: 'hit', damage: 25 });
+        continue;
+      }
     }
 
     b.life -= delta;
     if (b.life <= 0) { scene.remove(b.mesh); bullets.splice(i, 1); }
   }
 
-  renderer.render(scene, camera);
+  composer.render();
 }
 
 updateHpUI();
