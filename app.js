@@ -27,11 +27,10 @@ const shopStatusEl = document.getElementById('shop-status');
 const shopConfirmBtn = document.getElementById('shop-confirm-btn');
 const weaponButtons = document.querySelectorAll('.weapon-btn');
 
-// Safe Colyseus Initialization Fallback
+// Safe Initialization using Global Colyseus Object
 const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
 const host = window.location.host; 
-const ColyseusClientClass = window.Colyseus.Client || window.Colyseus;
-const client = new ColyseusClientClass(`${protocol}://${host}`);
+const client = new window.Colyseus.Client(`${protocol}://${host}`);
 let room = null;
 
 // Audio Synthesizer
