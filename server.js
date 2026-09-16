@@ -235,15 +235,22 @@ class BaseRoom extends Room {
       p.isReady = false;
     });
   }
+
+  onLeave(client) {
+    this.state.players.delete(client.sessionId);
+  }
+
+  checkRoundEnd() {}
 }
 
 // ==========================================
 // 4. GAME ROOM IMPLEMENTATIONS
 // ==========================================
 class LoneWolfRoom extends BaseRoom {
-  onJoin(client) {
+  onJoin(client, options) {
     const player = new PlayerSchema();
     player.id = client.sessionId;
+    player.name = (options && options.name) ? String(options.name).trim() : "Player";
     player.team = this.state.players.size + 1;
     this.state.players.set(client.sessionId, player);
 
@@ -283,9 +290,10 @@ class BattleRoyaleRoom extends BaseRoom {
     this.maxPlayers = 20;
   }
 
-  onJoin(client) {
+  onJoin(client, options) {
     const player = new PlayerSchema();
     player.id = client.sessionId;
+    player.name = (options && options.name) ? String(options.name).trim() : "Player";
     player.team = this.state.players.size + 1;
     this.state.players.set(client.sessionId, player);
   }
