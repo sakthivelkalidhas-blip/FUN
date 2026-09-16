@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0" />
-  <title>Arena Duel 1v1 - DEEPAN GAMING INDUSTRY</title>
+  <title>Arena Duel - DEEPAN GAMING INDUSTRY</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
     body { overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #050505; color: #fff; }
@@ -49,7 +49,7 @@
 
     .brand-title {
       font-family: 'Arial Black', 'Segoe UI', sans-serif;
-      font-size: 40px; text-transform: uppercase; letter-spacing: 4px;
+      font-size: 36px; text-transform: uppercase; letter-spacing: 4px;
       background: linear-gradient(180deg, #fff2c6 0%, #ff9900 55%, #ff3300 100%);
       -webkit-background-clip: text; background-clip: text; color: transparent;
       filter: drop-shadow(0 0 18px rgba(255,90,0,0.55));
@@ -57,20 +57,9 @@
     }
 
     .brand-subtitle {
-      font-size: 14px; color: #00e5ff; letter-spacing: 3px; margin: 8px 0 26px;
+      font-size: 13px; color: #00e5ff; letter-spacing: 3px; margin: 8px 0 26px;
       text-shadow: 0 0 10px rgba(0,229,255,0.6);
       position: relative; display: inline-block;
-    }
-    .brand-subtitle::after {
-      content: ''; position: absolute; left: 50%; bottom: -8px; transform: translateX(-50%);
-      width: 0%; height: 2px; background: linear-gradient(90deg, transparent, #00e5ff, transparent);
-      animation: underlineGrow 1.4s ease-out forwards; animation-delay: 0.6s;
-    }
-    @keyframes underlineGrow { to { width: 140px; } }
-
-    @keyframes pulseGlow {
-      0% { transform: scale(0.98); filter: drop-shadow(0 0 10px rgba(255,90,0,0.4)); }
-      100% { transform: scale(1.03); filter: drop-shadow(0 0 26px rgba(255,60,0,0.75)); }
     }
 
     .card {
@@ -85,10 +74,10 @@
     }
     @keyframes cardRise { to { opacity: 1; transform: translateY(0) scale(1); } }
 
-    .card-heading { font-size: 12px; letter-spacing: 2px; color: #ffb347; margin-bottom: 4px; font-weight: bold; }
+    .card-heading { font-size: 13px; letter-spacing: 2px; color: #ffb347; margin-bottom: 12px; font-weight: bold; }
 
     input, button {
-      padding: 13px; margin: 8px 0; font-size: 15px; border-radius: 8px; border: none;
+      padding: 13px; margin: 6px 0; font-size: 15px; border-radius: 8px; border: none;
       width: 100%; font-family: inherit;
     }
     input {
@@ -105,43 +94,13 @@
     }
     button:hover { transform: translateY(-2px) scale(1.015); filter: brightness(1.15); }
     button:active { transform: translateY(0) scale(0.97); filter: brightness(0.95); }
-    .hidden { display: none !important; }
-
-    #my-id-row { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 10px 0 16px; }
-    #my-id { font-family: 'Consolas', monospace; font-size: 1.15rem; font-weight: bold; letter-spacing: 3px; color: #00ff88; }
-    #copy-btn {
-      padding: 6px 12px; font-size: 0.75rem; border-radius: 6px; width: auto; margin: 0;
-      border: 1px solid #00ff88; background: transparent; color: #00ff88;
-      box-shadow: none; text-transform: uppercase;
-    }
-    #copy-btn:hover { background: #00ff88; color: #000; transform: none; filter: none; }
-
-    hr.divider { border: 0; height: 1px; background: linear-gradient(90deg, transparent, #3a2a1c, transparent); margin: 18px 0; }
-
-    .join-row { display: flex; gap: 8px; }
-    .join-row button { width: auto; padding: 12px 18px; margin: 0; }
-    .join-row input { margin: 0; }
-
-    /* Mode select / host / join panels */
-    #host-panel, #join-panel { text-align: center; }
     button.btn-cyan {
       background: linear-gradient(45deg, #00b8d4, #00e5ff); color: #052733;
       box-shadow: 0 4px 14px rgba(0,200,255,0.3);
     }
-    #join-code {
-      font-family: 'Consolas', monospace; font-size: 1.4rem; letter-spacing: 8px;
-    }
-    #host-code {
-      font-family: 'Consolas', monospace; font-size: 1.6rem; font-weight: bold;
-      letter-spacing: 6px; color: #00ff88;
-    }
-    .status-text { font-size: 12px; color: #999; letter-spacing: 0.5px; margin: 10px 0; min-height: 14px; }
-    .back-link {
-      background: transparent; box-shadow: none; color: #999; font-size: 11px;
-      text-transform: none; letter-spacing: 0.5px; font-weight: normal; padding: 6px;
-      margin-top: 4px;
-    }
-    .back-link:hover { color: #ff9900; transform: none; filter: none; }
+    .hidden { display: none !important; }
+
+    .status-text { font-size: 12px; color: #00ff88; letter-spacing: 0.5px; margin: 10px 0; min-height: 14px; }
 
     /* Match Game Over Screen */
     #game-over-modal h1 { font-size: 38px; margin-bottom: 8px; letter-spacing: 2px; }
@@ -163,7 +122,7 @@
     #hp-bar-outer { width: 100%; height: 8px; background: rgba(255,255,255,0.15); border-radius: 4px; overflow: hidden; margin-top: 4px; }
     #hp-bar-inner { width: 100%; height: 100%; background: linear-gradient(90deg,#ff4500,#ffcc00); transition: width 0.2s ease; }
 
-    /* Dynamic Free-Fire-style Reticle */
+    /* Reticle */
     #crosshair {
       position: absolute; top: 50%; left: 50%; width: 0; height: 0;
       transform: translate(-50%, -50%); pointer-events: none; z-index: 6;
@@ -185,18 +144,17 @@
     #crosshair.fire .tick.bottom { transform: translateY(4px); }
     #crosshair.fire .tick.left   { transform: translateX(-4px); }
     #crosshair.fire .tick.right  { transform: translateX(4px); }
-    #crosshair.hitmarker .dot { background: #ff2b2b; box-shadow: 0 0 8px #ff2b2b; }
-    #crosshair.hitmarker .tick { background: #ff2b2b; box-shadow: 0 0 8px rgba(255,43,43,0.9); }
 
-    /* Healing Progress Bar */
-    #heal-bar-container {
+    /* Progress Overlay UI */
+    #heal-bar-container, #reload-bar-container {
       position: absolute; bottom: 26%; left: 50%; transform: translateX(-50%);
       width: 230px; background: rgba(0,0,0,0.8); padding: 10px; border-radius: 10px;
       border: 1px solid #00ff66; text-align: center; z-index: 10;
     }
-    #heal-bar-container p { font-size: 12px; margin-bottom: 6px; letter-spacing: 1px; color: #00ff88; }
+    #reload-bar-container { border-color: #ffcc00; bottom: 34%; }
+    #heal-bar-container p, #reload-bar-container p { font-size: 12px; margin-bottom: 6px; letter-spacing: 1px; color: #00ff88; }
+    #reload-bar-container p { color: #ffcc00; }
 
-    /* Hit direction flash */
     #damage-flash {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
       pointer-events: none; z-index: 8; background: radial-gradient(circle, transparent 55%, rgba(255,0,0,0.45) 100%);
@@ -204,7 +162,6 @@
     }
     #damage-flash.active { opacity: 1; transition: opacity 0.03s ease; }
 
-    /* Kill / status banner */
     #status-banner {
       position: absolute; top: 18%; left: 50%; transform: translate(-50%, -10px);
       z-index: 10; font-size: 22px; font-weight: bold; letter-spacing: 3px;
@@ -218,7 +175,6 @@
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
       pointer-events: none; z-index: 20;
     }
-
     #joystick-container {
       position: absolute; bottom: 40px; left: 40px; width: 120px; height: 120px;
       background: rgba(255, 255, 255, 0.08); border: 2px solid rgba(255, 255, 255, 0.3);
@@ -232,36 +188,24 @@
       transform: translate(-50%, -50%); pointer-events: none;
       box-shadow: 0 0 14px rgba(255,90,0,0.6);
     }
-
     #touch-look-area {
       position: absolute; top: 0; right: 0; width: 55%; height: 100%;
       pointer-events: auto; touch-action: none;
     }
-
     .touch-btn {
       position: absolute; width: 60px; height: 60px; border-radius: 50%;
       background: rgba(0, 0, 0, 0.55); border: 2px solid rgba(255,255,255,0.5); color: white;
       font-weight: bold; font-size: 11px; display: flex; align-items: center;
       justify-content: center; pointer-events: auto; user-select: none;
       touch-action: none; box-shadow: 0 0 10px rgba(0,0,0,0.5);
-      transition: transform 0.1s ease, background 0.1s ease;
     }
     .touch-btn:active { transform: scale(0.88); background: rgba(255, 69, 0, 0.75); }
-
     #btn-fire    { bottom: 65px; right: 135px; width: 78px; height: 78px; background: rgba(255, 30, 0, 0.55); border-color: #ff4500; font-size: 17px; }
     #btn-jump    { bottom: 165px; right: 55px; }
     #btn-crouch  { bottom: 90px; right: 55px; background: rgba(150,150,150,0.4); border-color: #ccc; }
     #btn-gloo    { bottom: 165px; right: 145px; background: rgba(0, 229, 255, 0.35); border-color: #00e5ff; }
     #btn-medkit  { bottom: 245px; right: 100px; background: rgba(0, 255, 102, 0.35); border-color: #00ff66; }
     #btn-reload  { bottom: 245px; right: 180px; background: rgba(255, 204, 0, 0.35); border-color: #ffcc00; font-size: 10px; }
-
-    /* Reload progress bar */
-    #reload-bar-container {
-      position: absolute; bottom: 34%; left: 50%; transform: translateX(-50%);
-      width: 230px; background: rgba(0,0,0,0.8); padding: 10px; border-radius: 10px;
-      border: 1px solid #ffcc00; text-align: center; z-index: 10;
-    }
-    #reload-bar-container p { font-size: 12px; margin-bottom: 6px; letter-spacing: 1px; color: #ffcc00; }
 
     /* ===================== WEAPON SHOP ===================== */
     #shop-overlay {
@@ -275,32 +219,23 @@
       pointer-events: auto; backdrop-filter: blur(6px);
       box-shadow: 0 0 40px rgba(255,69,0,0.2);
     }
-    #shop-panel h3 {
-      font-size: 14px; letter-spacing: 2px; color: #ffb347; margin-bottom: 4px; text-align: center;
-    }
+    #shop-panel h3 { font-size: 14px; letter-spacing: 2px; color: #ffb347; margin-bottom: 4px; text-align: center; }
     #shop-hint { font-size: 11px; color: #999; text-align: center; margin-bottom: 10px; }
     .weapon-cat { font-size: 10px; color: #777; letter-spacing: 2px; margin: 8px 0 5px; }
     .weapon-row { display: flex; gap: 8px; flex-wrap: wrap; }
     .weapon-btn {
       flex: 1 1 110px; min-width: 100px; padding: 9px 10px; margin: 0;
       background: rgba(255,255,255,0.06); border: 1px solid #3a3a3a; color: #eee;
-      border-radius: 8px; cursor: pointer; text-transform: none; letter-spacing: 0;
-      font-weight: bold; font-size: 13px; box-shadow: none; text-align: left;
+      border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 13px; text-align: left;
     }
     .weapon-btn span { display: block; font-size: 10px; color: #999; font-weight: normal; margin-top: 2px; }
-    .weapon-btn:hover { border-color: #ff8c00; transform: none; filter: none; }
-    .weapon-btn.selected {
-      background: linear-gradient(45deg, rgba(255,69,0,0.35), rgba(255,140,0,0.25));
-      border-color: #ff8c00; color: #fff;
-    }
-    .weapon-btn.selected span { color: #ffd6a8; }
+    .weapon-btn.selected { background: linear-gradient(45deg, rgba(255,69,0,0.35), rgba(255,140,0,0.25)); border-color: #ff8c00; color: #fff; }
     #shop-status { font-size: 12px; color: #00e5ff; text-align: center; margin-top: 10px; min-height: 15px; }
-    #shop-confirm-btn { margin-top: 8px; }
-    #shop-confirm-btn:disabled { opacity: 0.55; cursor: default; transform: none; filter: none; }
-    #shop-music { position: absolute; width: 0; height: 0; overflow: hidden; }
   </style>
 
-  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+  <!-- Colyseus SDK -->
+  <script src="https://unpkg.com/colyseus.js@^0.15.0/dist/colyseus.js"></script>
+
   <script type="importmap">
     {
       "imports": {
@@ -316,54 +251,31 @@
   <div id="intro-screen">
     <div class="brand-wrap">
       <h1 class="brand-title">DEEPAN GAMING INDUSTRY</h1>
-      <p class="brand-subtitle">1V1 ARENA DUEL &middot; MOBILE &amp; PC</p>
+      <p class="brand-subtitle">MULTIPLAYER ARENA &middot; LOBBY SERVER ACTIVE</p>
     </div>
 
     <div id="lobby-card" class="card">
-
-      <!-- Step 1: choose Host or Join -->
       <div id="mode-select">
-        <div class="card-heading">CHOOSE MODE</div>
-        <button id="host-mode-btn">Host Game</button>
-        <button id="join-mode-btn" class="btn-cyan">Join Game</button>
+        <div class="card-heading">SELECT GAME MODE</div>
+        <input type="text" id="player-name-input" placeholder="Enter Your Name" maxlength="12" />
+        <button id="cs-lonewolf-btn">CS Lone Wolf (1v1)</button>
+        <button id="br-mode-btn" class="btn-cyan">Battle Royale (20 Players / Bots)</button>
+        <p id="lobby-status" class="status-text">&nbsp;</p>
       </div>
-
-      <!-- Host flow: generates a 6-digit code for the opponent -->
-      <div id="host-panel" class="hidden">
-        <div class="card-heading">YOUR ROOM CODE</div>
-        <div id="my-id-row">
-          <span id="host-code">------</span>
-          <button id="copy-btn" type="button">Copy</button>
-        </div>
-        <p class="status-text" id="host-status">Generating code&hellip;</p>
-        <button id="host-start-btn" class="hidden">Start Game</button>
-        <button id="host-back-btn" class="back-link" type="button">&larr; Back</button>
-      </div>
-
-      <!-- Join flow: enter the host's 6-digit code -->
-      <div id="join-panel" class="hidden">
-        <div class="card-heading">ENTER ROOM CODE</div>
-        <input type="text" id="join-code" placeholder="000000" maxlength="6" inputmode="numeric" pattern="[0-9]*" />
-        <button id="join-connect-btn">Connect</button>
-        <p class="status-text" id="join-status">&nbsp;</p>
-        <button id="join-start-btn" class="hidden">Start Game</button>
-        <button id="join-back-btn" class="back-link" type="button">&larr; Back</button>
-      </div>
-
     </div>
 
     <!-- Match Game Over Screen -->
     <div id="game-over-modal" class="card hidden">
       <h1 id="match-result-title">VICTORY!</h1>
-      <p id="match-result-sub">First player to 5 wins!</p>
-      <button onclick="location.reload()">Play Again</button>
+      <p id="match-result-sub">Match Completed</p>
+      <button onclick="location.reload()">Back to Lobby</button>
     </div>
   </div>
 
   <!-- HUD -->
   <div id="hud">
     <div class="hud-box" style="color:#ff9900;">
-      HP: <span id="hp">100</span>
+      HP: <span id="hp">200</span>
       <div id="hp-bar-wrap"><div id="hp-bar-outer"><div id="hp-bar-inner"></div></div></div>
     </div>
     <div class="hud-box" style="color: #00e5ff;">SCORE&nbsp; <span id="local-score" style="color: #00ff00;">0</span> - <span id="remote-score" style="color: #ff0055;">0</span></div>
@@ -377,9 +289,7 @@
 
   <!-- Mobile On-Screen Controls -->
   <div id="touch-controls">
-    <div id="joystick-container">
-      <div id="joystick-knob"></div>
-    </div>
+    <div id="joystick-container"><div id="joystick-knob"></div></div>
     <div id="touch-look-area"></div>
     <div id="btn-fire" class="touch-btn">FIRE</div>
     <div id="btn-jump" class="touch-btn">JUMP</div>
@@ -388,7 +298,6 @@
     <div id="btn-medkit" class="touch-btn">MED</div>
     <div id="btn-reload" class="touch-btn">RELOAD</div>
   </div>
-
 
   <!-- Healing UI -->
   <div id="heal-bar-container" class="hidden">
@@ -410,7 +319,7 @@
   <div id="shop-overlay" class="hidden">
     <div id="shop-panel">
       <h3>WEAPON SHOP</h3>
-      <p id="shop-hint">Walk around while you choose &middot; 20-round magazine on every weapon</p>
+      <p id="shop-hint">Walk around while you choose &middot; Lock in before timer expires</p>
 
       <div class="weapon-cat">SUBMACHINE GUNS</div>
       <div class="weapon-row">
@@ -432,14 +341,11 @@
         <button class="weapon-btn" data-weapon="m24">M24<span>80 dmg &middot; bolt action</span></button>
       </div>
 
-      <button id="shop-confirm-btn">Lock In Loadout</button>
+      <button id="shop-confirm-btn" style="margin-top:10px;">Lock In Loadout</button>
       <p id="shop-status">Pick your weapon, then lock in.</p>
     </div>
   </div>
 
-  <div id="shop-music"></div>
-
-  <!-- Reticle -->
   <div id="crosshair">
     <div class="dot"></div>
     <div class="tick top"></div>
@@ -451,7 +357,6 @@
   <div id="canvas-container"></div>
 
   <script>
-    // Floating embers on the intro screen (purely decorative, self-contained)
     (function spawnEmbers() {
       const host = document.getElementById('intro-screen');
       for (let i = 0; i < 22; i++) {
@@ -467,15 +372,6 @@
         host.appendChild(e);
       }
     })();
-
-    document.getElementById('copy-btn').addEventListener('click', () => {
-      const id = document.getElementById('host-code').innerText;
-      if (navigator.clipboard) navigator.clipboard.writeText(id).catch(() => {});
-      const btn = document.getElementById('copy-btn');
-      const old = btn.innerText;
-      btn.innerText = 'Copied!';
-      setTimeout(() => { btn.innerText = old; }, 1200);
-    });
   </script>
 
   <script type="module" src="app.js"></script>
