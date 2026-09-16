@@ -5,9 +5,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
-// ============================================================
-// UI Elements & Server Connection setup
-// ============================================================
+// Elements
 const csLoneWolfBtn = document.getElementById('cs-lonewolf-btn');
 const brModeBtn = document.getElementById('br-mode-btn');
 const playerNameInput = document.getElementById('player-name-input');
@@ -16,36 +14,24 @@ const lobbyStatusEl = document.getElementById('lobby-status');
 const introScreen = document.getElementById('intro-screen');
 const lobbyCard = document.getElementById('lobby-card');
 const gameOverModal = document.getElementById('game-over-modal');
-const matchTitle = document.getElementById('match-result-title');
-const matchSub = document.getElementById('match-result-sub');
 
 const hpEl = document.getElementById('hp');
 const hpBarInner = document.getElementById('hp-bar-inner');
 const glooEl = document.getElementById('gloo-count');
-const medkitEl = document.getElementById('medkit-count');
 const ammoCountEl = document.getElementById('ammo-count');
-const ammoMaxEl = document.getElementById('ammo-max');
 const localScoreEl = document.getElementById('local-score');
 const remoteScoreEl = document.getElementById('remote-score');
-const healBarContainer = document.getElementById('heal-bar-container');
-const healProgress = document.getElementById('heal-progress');
-const reloadBarContainer = document.getElementById('reload-bar-container');
-const reloadProgress = document.getElementById('reload-progress');
-const crosshairEl = document.getElementById('crosshair');
-const damageFlashEl = document.getElementById('damage-flash');
-const statusBannerEl = document.getElementById('status-banner');
 
 const shopOverlay = document.getElementById('shop-overlay');
 const shopStatusEl = document.getElementById('shop-status');
 const shopConfirmBtn = document.getElementById('shop-confirm-btn');
 const weaponButtons = document.querySelectorAll('.weapon-btn');
 
-// Colyseus Server Connection
+// Safe Colyseus Initialization Fallback
 const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-const host = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-  ? `${window.location.hostname}:2567` 
-  : window.location.host;
-const client = new Colyseus.Client(`${protocol}://${host}`);
+const host = window.location.host; 
+const ColyseusClientClass = window.Colyseus.Client || window.Colyseus;
+const client = new ColyseusClientClass(`${protocol}://${host}`);
 let room = null;
 
 // Audio Synthesizer
@@ -77,7 +63,6 @@ scene.background = new THREE.Color(0x0d0f12);
 scene.fog = new THREE.Fog(0x0d0f12, 34, 110);
 
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-const BASE_FOV = 75;
 camera.position.set(0, 1.6, 34);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
@@ -100,7 +85,7 @@ window.addEventListener('resize', () => {
   composer.setSize(window.innerWidth, window.innerHeight);
 });
 
-// Lighting & Map Creation
+// Arena Floor & Light
 scene.add(new THREE.HemisphereLight(0x9fb7c9, 0x2b2416, 0.6));
 const sunLight = new THREE.DirectionalLight(0xffe3b8, 1.0);
 sunLight.position.set(-24, 34, -18);
@@ -116,47 +101,32 @@ floor.rotation.x = -Math.PI / 2;
 floor.receiveShadow = true;
 scene.add(floor);
 
-// Weapon Loadout Config
+// Loadouts Configuration
 const MAG_SIZE = 20;
 const WEAPONS = {
-  mp40:   { name: 'MP40', damage: 16, fireRate: 0.11, auto: true, bodyLen: 0.58, barrelLen: 0.40 },
-  ump:    { name: 'UMP', damage: 18, fireRate: 0.14, auto: true, bodyLen: 0.60, barrelLen: 0.36 },
-  m1911:  { name: 'M1911', damage: 26, fireRate: 0.28, auto: false, bodyLen: 0.34, barrelLen: 0.22 },
-  deagle: { name: 'Desert Eagle', damage: 38, fireRate: 0.38, auto: false, bodyLen: 0.38, barrelLen: 0.26 },
-  g18:    { name: 'G18', damage: 20, fireRate: 0.10, auto: true, bodyLen: 0.30, barrelLen: 0.20 },
-  awm:    { name: 'AWM', damage: 95, fireRate: 1.30, auto: false, bodyLen: 0.70, barrelLen: 0.85 },
-  kar98k: { name: 'Kar98k', damage: 85, fireRate: 1.20, auto: false, bodyLen: 0.68, barrelLen: 0.80 },
-  m24:    { name: 'M24', damage: 80, fireRate: 1.15, auto: false, bodyLen: 0.66, barrelLen: 0.78 }
+  mp40:   { name: 'MP40', damage: 16, fireRate: 0.11 },
+  ump:    { name: 'UMP', damage: 18, fireRate: 0.14 },
+  m1911:  { name: 'M1911', damage: 26, fireRate: 0.28 },
+  deagle: { name: 'Desert Eagle', damage: 38, fireRate: 0.38 },
+  g18:    { name: 'G18', damage: 20, fireRate: 0.10 },
+  awm:    { name: 'AWM', damage: 95, fireRate: 1.30 },
+  kar98k: { name: 'Kar98k', damage: 85, fireRate: 1.20 },
+  m24:    { name: 'M24', damage: 80, fireRate: 1.15 }
 };
 
 let selectedWeaponKey = 'mp40';
 let currentAmmo = MAG_SIZE;
-let isReloading = false;
-let isFiring = false;
 let lastShotTime = 0;
 
-// Game State Variables
 const MAX_HP = 200;
 let health = MAX_HP;
 let glooWallsLeft = 3;
-let medKitsLeft = 2;
 let gameStarted = false;
-let isCrouching = false;
-
-// Movement
-let velocityY = 0;
-let isGrounded = true;
-const GRAVITY = 25;
-const JUMP_FORCE = 9;
-const STAND_HEIGHT = 1.6;
-const CROUCH_HEIGHT = 1.0;
-let currentEyeHeight = STAND_HEIGHT;
 
 const controls = new PointerLockControls(camera, renderer.domElement);
 
-// Multi-player Remote Models Engine
+// Player Meshes
 const remotePlayers = {};
-const remoteGlooWalls = {};
 
 function buildCharacterMesh() {
   const group = new THREE.Group();
@@ -167,7 +137,7 @@ function buildCharacterMesh() {
   return group;
 }
 
-// Room Connect Handlers
+// Room Logic
 async function joinGameRoom(roomName) {
   try {
     ensureAudio();
@@ -184,7 +154,7 @@ async function joinGameRoom(roomName) {
 
   } catch (err) {
     console.error(err);
-    lobbyStatusEl.innerText = "Connection Failed. Check server log.";
+    lobbyStatusEl.innerText = "Connection Error. Check console.";
   }
 }
 
@@ -194,13 +164,12 @@ brModeBtn.addEventListener('click', () => joinGameRoom('battle_royale'));
 function setupRoomListeners() {
   room.state.players.onAdd((player, sessionId) => {
     if (sessionId === room.sessionId) {
-      // Local Player updates from server
       player.onChange(() => {
         health = player.hp;
-        updateHpUI();
+        hpEl.innerText = health;
+        hpBarInner.style.width = (Math.max(health, 0) / MAX_HP) * 100 + '%';
       });
     } else {
-      // Remote Players Add
       const mesh = buildCharacterMesh();
       scene.add(mesh);
       remotePlayers[sessionId] = mesh;
@@ -219,7 +188,7 @@ function setupRoomListeners() {
     }
   });
 
-  room.state.glooWalls.onAdd((wall, key) => {
+  room.state.glooWalls.onAdd((wall) => {
     const wallMesh = new THREE.Mesh(
       new THREE.BoxGeometry(5, 4, 0.5),
       new THREE.MeshStandardMaterial({ color: 0x00e5ff, transparent: true, opacity: 0.75 })
@@ -227,7 +196,6 @@ function setupRoomListeners() {
     wallMesh.position.set(wall.position.x, wall.position.y, wall.position.z);
     wallMesh.rotation.y = wall.rotationY;
     scene.add(wallMesh);
-    remoteGlooWalls[key] = wallMesh;
   });
 
   room.state.onChange(() => {
@@ -238,14 +206,17 @@ function setupRoomListeners() {
       shopOverlay.classList.add('hidden');
       if (!('ontouchstart' in window)) controls.lock();
     } else if (room.state.status === "GAME_OVER") {
-      endGame();
+      if (controls.isLocked) controls.unlock();
+      introScreen.classList.remove('hidden');
+      lobbyCard.classList.add('hidden');
+      gameOverModal.classList.remove('hidden');
     }
     localScoreEl.innerText = room.state.team1Score;
     remoteScoreEl.innerText = room.state.team2Score;
   });
 }
 
-// Weapon Selection / Lock
+// Controls & Firing Loop
 weaponButtons.forEach((btn) => {
   btn.addEventListener('click', () => {
     weaponButtons.forEach((b) => b.classList.remove('selected'));
@@ -262,7 +233,6 @@ shopConfirmBtn.addEventListener('click', () => {
   }
 });
 
-// Controls & Firing Loop
 const moveState = { forward: false, backward: false, left: false, right: false };
 window.addEventListener('keydown', (e) => {
   if (e.code === 'KeyW') moveState.forward = true;
@@ -270,7 +240,7 @@ window.addEventListener('keydown', (e) => {
   if (e.code === 'KeyA') moveState.left = true;
   if (e.code === 'KeyD') moveState.right = true;
   if (e.code === 'KeyE') deployGlooWall();
-  if (e.code === 'KeyR') reload();
+  if (e.code === 'KeyR') { currentAmmo = MAG_SIZE; ammoCountEl.innerText = currentAmmo; }
 });
 
 window.addEventListener('keyup', (e) => {
@@ -293,23 +263,18 @@ function shoot() {
   lastShotTime = now;
   playGunshot();
 
-  // Raycast to check target ID
   const raycaster = new THREE.Raycaster();
   raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
   
   let targetId = null;
   for (let sid in remotePlayers) {
-    const intersects = raycaster.intersectObject(remotePlayers[sid], true);
-    if (intersects.length > 0) {
+    if (raycaster.intersectObject(remotePlayers[sid], true).length > 0) {
       targetId = sid;
       break;
     }
   }
 
-  room.send("shoot", {
-    targetId: targetId,
-    damage: weapon.damage
-  });
+  room.send("shoot", { targetId, damage: weapon.damage });
 }
 
 function deployGlooWall() {
@@ -325,23 +290,6 @@ function deployGlooWall() {
     z: camera.position.z + dir.z * 4,
     ry: Math.atan2(dir.x, dir.z)
   });
-}
-
-function reload() {
-  currentAmmo = MAG_SIZE;
-  ammoCountEl.innerText = currentAmmo;
-}
-
-function updateHpUI() {
-  hpEl.innerText = health;
-  hpBarInner.style.width = (Math.max(health, 0) / MAX_HP) * 100 + '%';
-}
-
-function endGame() {
-  if (controls.isLocked) controls.unlock();
-  introScreen.classList.remove('hidden');
-  lobbyCard.classList.add('hidden');
-  gameOverModal.classList.remove('hidden');
 }
 
 // Game Loop
@@ -363,7 +311,6 @@ function animate() {
       camera.position.addScaledVector(moveVector, 12 * delta);
     }
 
-    // Send transform to server
     room.send("move", {
       x: camera.position.x,
       y: camera.position.y,
