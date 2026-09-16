@@ -27,7 +27,7 @@ const shopStatusEl = document.getElementById('shop-status');
 const shopConfirmBtn = document.getElementById('shop-confirm-btn');
 const weaponButtons = document.querySelectorAll('.weapon-btn');
 
-// Safe Initialization using Global Colyseus Object
+// Safe Initialization via Global Colyseus Object
 const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
 const host = window.location.host; 
 const client = new window.Colyseus.Client(`${protocol}://${host}`);
@@ -140,10 +140,13 @@ function buildCharacterMesh() {
 async function joinGameRoom(roomName) {
   try {
     ensureAudio();
-    const name = playerNameInput.value || "Player";
+    const inputVal = playerNameInput.value ? playerNameInput.value.trim() : "";
+    const name = inputVal !== "" ? inputVal : "Player";
+    
     lobbyStatusEl.innerText = "Connecting to Game Server...";
     
-    room = await client.joinOrCreate(roomName, { name });
+    // Explicit options payload structure
+    room = await client.joinOrCreate(roomName, { name: name });
     lobbyStatusEl.innerText = "Connected! Entering arena...";
     
     setupRoomListeners();
@@ -152,7 +155,7 @@ async function joinGameRoom(roomName) {
     if (!('ontouchstart' in window)) controls.lock();
 
   } catch (err) {
-    console.error(err);
+    console.error("Colyseus Join Error:", err);
     lobbyStatusEl.innerText = "Connection Error. Check console.";
   }
 }
@@ -161,41 +164,47 @@ csLoneWolfBtn.addEventListener('click', () => joinGameRoom('lone_wolf'));
 brModeBtn.addEventListener('click', () => joinGameRoom('battle_royale'));
 
 function setupRoomListeners() {
-  room.state.players.onAdd((player, sessionId) => {
-    if (sessionId === room.sessionId) {
-      player.onChange(() => {
-        health = player.hp;
-        hpEl.innerText = health;
-        hpBarInner.style.width = (Math.max(health, 0) / MAX_HP) * 100 + '%';
-      });
-    } else {
-      const mesh = buildCharacterMesh();
-      scene.add(mesh);
-      remotePlayers[sessionId] = mesh;
+  if (!room || !room.state) return;
 
-      player.position.onChange(() => {
-        mesh.position.set(player.position.x, player.position.y, player.position.z);
-        mesh.rotation.y = player.rotationY;
-      });
-    }
-  });
+  if (room.state.players) {
+    room.state.players.onAdd((player, sessionId) => {
+      if (sessionId === room.sessionId) {
+        player.onChange(() => {
+          health = player.hp;
+          hpEl.innerText = health;
+          hpBarInner.style.width = (Math.max(health, 0) / MAX_HP) * 100 + '%';
+        });
+      } else {
+        const mesh = buildCharacterMesh();
+        scene.add(mesh);
+        remotePlayers[sessionId] = mesh;
 
-  room.state.players.onRemove((player, sessionId) => {
-    if (remotePlayers[sessionId]) {
-      scene.remove(remotePlayers[sessionId]);
-      delete remotePlayers[sessionId];
-    }
-  });
+        player.position.onChange(() => {
+          mesh.position.set(player.position.x, player.position.y, player.position.z);
+          mesh.rotation.y = player.rotationY;
+        });
+      }
+    });
 
-  room.state.glooWalls.onAdd((wall) => {
-    const wallMesh = new THREE.Mesh(
-      new THREE.BoxGeometry(5, 4, 0.5),
-      new THREE.MeshStandardMaterial({ color: 0x00e5ff, transparent: true, opacity: 0.75 })
-    );
-    wallMesh.position.set(wall.position.x, wall.position.y, wall.position.z);
-    wallMesh.rotation.y = wall.rotationY;
-    scene.add(wallMesh);
-  });
+    room.state.players.onRemove((player, sessionId) => {
+      if (remotePlayers[sessionId]) {
+        scene.remove(remotePlayers[sessionId]);
+        delete remotePlayers[sessionId];
+      }
+    });
+  }
+
+  if (room.state.glooWalls) {
+    room.state.glooWalls.onAdd((wall) => {
+      const wallMesh = new THREE.Mesh(
+        new THREE.BoxGeometry(5, 4, 0.5),
+        new THREE.MeshStandardMaterial({ color: 0x00e5ff, transparent: true, opacity: 0.75 })
+      );
+      wallMesh.position.set(wall.position.x, wall.position.y, wall.position.z);
+      wallMesh.rotation.y = wall.rotationY;
+      scene.add(wallMesh);
+    });
+  }
 
   room.state.onChange(() => {
     if (room.state.status === "SHOP") {
@@ -210,8 +219,8 @@ function setupRoomListeners() {
       lobbyCard.classList.add('hidden');
       gameOverModal.classList.remove('hidden');
     }
-    localScoreEl.innerText = room.state.team1Score;
-    remoteScoreEl.innerText = room.state.team2Score;
+    localScoreEl.innerText = room.state.team1Score || 0;
+    remoteScoreEl.innerText = room.state.team2Score || 0;
   });
 }
 
