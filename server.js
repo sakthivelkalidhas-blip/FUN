@@ -3,6 +3,8 @@ import { WebSocketTransport } from "@colyseus/ws-transport";
 import { Schema, MapSchema, type } from "@colyseus/schema";
 import express from "express";
 import { createServer } from "http";
+import path from "path";
+import { fileURLToPath } from "url";
 
 // ==========================================
 // 1. SCHEMAS
@@ -108,7 +110,7 @@ class BotController {
     let minDist = Infinity;
 
     players.forEach((p) => {
-      if (p.id !== this.bot.id && p.team !== this.bot.team && p.hp > 0) {
+      if (p.id !== this.bot.id && p.hp > 0) {
         const dist = Math.hypot(p.position.x - this.bot.position.x, p.position.z - this.bot.position.z);
         if (dist < minDist) {
           minDist = dist;
@@ -167,11 +169,12 @@ class BaseRoom extends Room {
   handleShopLock(client, data) {
     const player = this.state.players.get(client.sessionId);
     if (!player) return;
+    if (!WEAPON_KEYS.includes(data.weapon)) return;
     player.selectedWeapon = data.weapon;
     player.isReady = true;
 
     let allReady = true;
-    this.state.players.forEach((p) => { if (!p.isReady) allReady = false; });
+    this.state.players.forEach((p) => { if (!p.isBot && !p.isReady) allReady = false; });
     if (allReady && this.state.status === "SHOP") this.startRound();
   }
 
@@ -179,8 +182,12 @@ class BaseRoom extends Room {
     if (this.state.status !== "IN_ROUND") return;
 
     const shooter = this.state.players.get(client.sessionId);
-    const target = this.state.players.get(data.targetId);
-    if (!shooter || !target || target.hp <= 0 || shooter.team === target.team) return;
+    const target = data.targetId ? this.state.players.get(data.targetId) : null;
+    if (!shooter || shooter.hp <= 0 || !target || target.hp <= 0) return;
+    if (shooter.team === target.team) return;
+
+    const damage = WEAPON_DAMAGE[shooter.selectedWeapon] ?? 0;
+    if (damage <= 0) return;
 
     // Server-side distance check
     const dist = Math.hypot(target.position.x - shooter.position.x, target.position.z - shooter.position.z);
@@ -197,7 +204,7 @@ class BaseRoom extends Room {
 
     if (blocked) return;
 
-    target.hp = Math.max(0, target.hp - data.damage);
+    target.hp = Math.max(0, target.hp - damage);
     if (target.hp <= 0) {
       shooter.kills += 1;
       this.checkRoundEnd();
@@ -222,6 +229,7 @@ class BaseRoom extends Room {
   startShopPhase() {
     this.state.status = "SHOP";
     this.state.timer = this.shopDuration;
+    this.state.players.forEach((p) => { p.isReady = false; });
     this.clock.setTimeout(() => {
       if (this.state.status === "SHOP") this.startRound();
     }, this.shopDuration * 1000);
@@ -243,18 +251,48 @@ class BaseRoom extends Room {
   checkRoundEnd() {}
 }
 
+// Shared weapon damage table used for server-side hit validation
+// (must be kept in sync with the WEAPONS table in app.js)
+const WEAPON_DAMAGE = {
+  mp40: 16,
+  ump: 18,
+  m1911: 26,
+  deagle: 38,
+  g18: 20,
+  awm: 95,
+  kar98k: 85,
+  m24: 80
+};
+const WEAPON_KEYS = Object.keys(WEAPON_DAMAGE);
+
 // ==========================================
 // 4. GAME ROOM IMPLEMENTATIONS
 // ==========================================
 class LoneWolfRoom extends BaseRoom {
+  onCreate(options) {
+    super.onCreate(options);
+    this.maxClients = 2;
+  }
+
   onJoin(client, options) {
     const player = new PlayerSchema();
     player.id = client.sessionId;
-    player.name = (options && options.name) ? String(options.name).trim() : "Player";
+    player.name = (options && options.name) ? String(options.name).trim().slice(0, 12) || "Player" : "Player";
     player.team = this.state.players.size + 1;
     this.state.players.set(client.sessionId, player);
 
-    if (this.state.players.size === 2) this.startShopPhase();
+    if (this.state.players.size === 2) {
+      this.lock();
+      this.startShopPhase();
+    }
+  }
+
+  onLeave(client) {
+    super.onLeave(client);
+    // Match can no longer be completed with one player left.
+    if (this.state.status !== "GAME_OVER") {
+      this.state.status = "GAME_OVER";
+    }
   }
 
   checkRoundEnd() {
@@ -288,12 +326,14 @@ class BattleRoyaleRoom extends BaseRoom {
     this.bots = [];
     this.lobbyTimer = 0;
     this.maxPlayers = 20;
+    this.maxClients = this.maxPlayers;
   }
 
   onJoin(client, options) {
     const player = new PlayerSchema();
     player.id = client.sessionId;
-    player.name = (options && options.name) ? String(options.name).trim() : "Player";
+    player.name = (options && options.name) ? String(options.name).trim().slice(0, 12) || "Player" : "Player";
+    // Every player/bot gets a unique team id -> free-for-all (no friendly fire pairs).
     player.team = this.state.players.size + 1;
     this.state.players.set(client.sessionId, player);
   }
@@ -302,6 +342,7 @@ class BattleRoyaleRoom extends BaseRoom {
     if (this.state.status === "LOBBY") {
       this.lobbyTimer += deltaTime / 1000;
       if (this.lobbyTimer >= this.matchStartDelaySec) {
+        this.lock();
         this.fillWithBots();
         this.startShopPhase();
       }
@@ -320,6 +361,7 @@ class BattleRoyaleRoom extends BaseRoom {
       bot.id = botId;
       bot.name = `Bot ${i + 1}`;
       bot.isBot = true;
+      bot.isReady = true;
       bot.team = this.state.players.size + 1;
 
       this.state.players.set(botId, bot);
@@ -337,8 +379,16 @@ class BattleRoyaleRoom extends BaseRoom {
 // ==========================================
 // 5. SERVER BOOTSTRAP
 // ==========================================
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
 app.use(express.json());
+
+// Serve the frontend (index.html, app.js, etc.) from the same origin as the
+// game server, so window.location.host in app.js resolves correctly.
+// Put index.html + app.js inside a "public" folder next to this file.
+app.use(express.static(path.join(__dirname, "public")));
 
 const port = Number(process.env.PORT || 2567);
 const server = createServer(app);
